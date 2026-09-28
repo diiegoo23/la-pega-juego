@@ -1,0 +1,156 @@
+/* Estilo base */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #2e2e2e;
+    color: #fff;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+}
+
+h1, h2, h3 {
+    margin: 10px 0;
+}
+
+button {
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: none;
+    transition: 0.2s;
+    background-color: #444;
+    color: #fff;
+}
+
+    button:hover {
+        background-color: #666;
+    }
+
+/* Contenedores de secciones */
+.menu-secundario, #juego {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #3a3a3a;
+    border-radius: 12px;
+    display: none; /* Ocultos por defecto */
+}
+
+#mesa-container, #mano-container, #marcador-container {
+    display: inline-block;
+    vertical-align: top;
+    margin: 10px;
+    padding: 15px;
+    background-color: #4a4a4a;
+    border-radius: 12px;
+    min-width: 220px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* --- ESTILOS PARA CARTAS CON IMÁGENES --- */
+.carta {
+    width: 80px;
+    height: 120px;
+    margin: 5px;
+    cursor: pointer;
+    display: inline-block;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+}
+
+    .carta img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+        pointer-events: none; /* Evita que la imagen se arrastre por error */
+    }
+
+.mesa-carta {
+    cursor: default;
+}
+
+#mano .carta:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.6);
+}
+
+/* Indicador de turno */
+#turno-indicador {
+    margin: 15px 0;
+    font-size: 20px;
+    font-weight: bold;
+    height: 30px;
+    transition: all 0.3s ease;
+}
+
+/* Marcador */
+#marcador-container > div {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #555;
+    border-radius: 8px;
+}
+
+#marcador-container button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+#rojo-btn, #rojo-mas, #rojo-menos {
+    background-color: #c0392b;
+}
+
+#azul-btn, #azul-mas, #azul-menos {
+    background-color: #2980b9;
+}
+
+/* --- ESTILOS DEL MODAL DE REGLAS --- */
+.modal-reglas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85); /* Fondo oscuro transparente */
+    z-index: 3000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-contenido {
+    background: #2e2e2e;
+    border: 3px solid #e67e22;
+    border-radius: 12px;
+    padding: 25px;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: white;
+    text-align: left;
+    box-shadow: 0 0 25px black;
+}
+
+    .modal-contenido h2 {
+        text-align: center;
+        color: #e67e22;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+
+.texto-reglas p {
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.texto-reglas strong {
+    color: gold;
+}
