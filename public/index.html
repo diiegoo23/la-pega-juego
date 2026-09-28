@@ -1,67 +1,65 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0C1258J2LG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-0C1258J2LG');
+  </script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Juego de Cartas</title>
+  <title>La Pega - Juego de Cartas</title>
   <link rel="stylesheet" href="style.css">
   <script src="/socket.io/socket.io.js"></script>
   <script defer src="script.js"></script>
-  <style>
-    .carta {
-      width: 80px; height: 120px; border: 2px solid #333; border-radius: 8px;
-      margin: 5px; padding: 5px; background: white; cursor: pointer;
-      display: inline-block; text-align: center;
-    }
-    .mesa-carta { background: #f0f0f0; cursor: default; }
-    .palo[data-palo="oros"] { color: gold; font-weight: bold; }
-    .palo[data-palo="copas"] { color: red; font-weight: bold; }
-    .palo[data-palo="espadas"] { color: black; font-weight: bold; }
-    .palo[data-palo="bastos"] { color: brown; font-weight: bold; }
-    #contador-cartas {
-      position: fixed; top: 10px; right: 10px; background: white; color: black;
-      padding: 10px; border: 2px solid #333; border-radius: 8px; z-index: 1000;
-    }
-    #turno-indicador {
-      position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
-      background: gold; padding: 10px 20px; border-radius: 20px; font-weight: bold; z-index: 1000; color: black;
-    }
-    .menu-secundario { text-align: center; padding: 20px; }
-    button {
-      padding: 10px 20px; margin: 5px; border: none; border-radius: 5px;
-      cursor: pointer; background: #4CAF50; color: white; font-size: 16px;
-    }
-    button:hover { background: #45a049; }
-    #marcador-container {
-      margin: 20px; padding: 15px; background: #f0f0f0; color: black;
-      border-radius: 10px; display: inline-block;
-    }
-    #marcador-container div { margin: 10px; display: inline-block; }
-    
-    #fin-ronda-modal {
-      position: fixed; top: 30%; left: 50%; transform: translate(-50%, -30%);
-      background: #2e2e2e; color: white; padding: 30px; border: 3px solid gold;
-      border-radius: 15px; box-shadow: 0 0 20px black; z-index: 2000;
-    }
-    #fin-ronda-modal h2 { color: gold; margin-bottom: 20px;}
-    #fin-ronda-modal span { font-weight: bold; font-size: 20px;}
-
-    .equipo-caja {
-      display: inline-block; width: 200px; margin: 10px; padding: 15px;
-      background: #4a4a4a; border-radius: 10px; min-height: 150px; vertical-align: top;
-    }
-    .equipo-caja ul { list-style: none; padding: 0; }
-    .equipo-caja li { padding: 5px; margin: 5px 0; background: #333; border-radius: 5px; color: white;}
-  </style>
 </head>
 <body>
   <div id="menu">
     <h1>Menú Principal</h1>
-    <!-- NUEVO: CAMPO DE NOMBRE -->
     <input id="inputNombre" type="text" placeholder="Tu nombre" maxlength="12" style="padding: 10px; font-size: 16px; border-radius: 5px; margin-bottom: 15px; text-align: center; border: none;"><br>
     
     <button id="crear">Crear Partida</button>
-    <button id="unirse">Unirse a Partida</button>
+    <button id="unirse">Unirse a Partida</button><br>
+    <!-- BOTÓN DE REGLAS -->
+    <button id="verReglas" style="background: #e67e22; margin-top: 15px;">📜 Ver Reglas</button>
+  </div>
+
+  <!-- PANEL DE REGLAS OCULTO -->
+  <div id="modalReglas" class="modal-reglas" style="display:none;">
+    <div class="modal-contenido">
+      <h2>📜 Reglas de "La Pega"</h2>
+      <div class="texto-reglas">
+        <p><strong>El Objetivo:</strong> Llegar a 40 puntos. Gana el equipo o jugador que lo logre primero.</p>
+        
+        <p><strong>La Mesa Inicial:</strong> El jugador que reparte (el que da mesa) se suma puntos dependiendo de las rondas que haya en las 4 cartas iniciales. Además, si la primera carta que pone en la mesa es un 1, se suma 1 punto; si es un 2, se suma 2 puntos... y así sucesivamente.</p>
+
+        <p><strong>Cómo recoger:</strong> Tiras una carta y recoges otra de la mesa del mismo valor, llevándote también las siguientes en escalera ascendente (El orden es: 1 al 7, Sota, Caballo, Rey). Cada carta que logres recoger suma 1 punto al final de la mano.</p>
+
+        <hr style="border-color: #e67e22; margin: 15px 0;">
+        <p style="text-align: center; color: gold;"><strong>🔥 SISTEMA DE PUNTUACIÓN 🔥</strong></p>
+        
+        <p><strong>Limpiar la mesa, Pegada y Rondas:</strong><br>
+        • Si la carta es del <strong>1 al 7</strong> = 1 punto<br>
+        • Si la carta es un <strong>10 (Sota)</strong> = 2 puntos<br>
+        • Si la carta es un <strong>11 (Caballo)</strong> = 3 puntos<br>
+        • Si la carta es un <strong>12 (Rey)</strong> = 4 puntos</p>
+
+        <p><strong>Repega y Rondines:</strong><br>
+        • Si la carta es del <strong>1 al 7</strong> = 5 puntos<br>
+        • Si la carta es un <strong>10 (Sota)</strong> = 6 puntos<br>
+        • Si la carta es un <strong>11 (Caballo)</strong> = 7 puntos<br>
+        • Si la carta es un <strong>12 (Rey)</strong> = 8 puntos</p>
+        
+        <hr style="border-color: #e67e22; margin: 15px 0;">
+        <p><strong>Apuestas:</strong> ¡Atención! Si dos o más jugadores tienen "ronda" a la vez durante la partida, estos podrán hacer las apuestas que quieran con esa ronda.</p>
+      </div>
+      <button id="cerrarReglas" style="background: #e74c3c; width: 100%; margin-top: 15px;">Entendido</button>
+    </div>
   </div>
 
   <div id="crearPartida" class="menu-secundario" style="display:none;">
