@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0C1258J2LG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-0C1258J2LG');
+  </script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>La Pega - Juego de Cartas</title>
@@ -15,11 +25,11 @@
     
     <button id="crear">Crear Partida</button>
     <button id="unirse">Unirse a Partida</button><br>
-    <!-- NUEVO BOTÓN DE REGLAS -->
+    <!-- BOTÓN DE REGLAS -->
     <button id="verReglas" style="background: #e67e22; margin-top: 15px;">📜 Ver Reglas</button>
   </div>
 
-  <!-- NUEVO: PANEL DE REGLAS OCULTO -->
+  <!-- PANEL DE REGLAS OCULTO -->
   <div id="modalReglas" class="modal-reglas" style="display:none;">
     <div class="modal-contenido">
       <h2>📜 Reglas de "La Pega"</h2>
