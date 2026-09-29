@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0C1258J2LG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0C1258J2LG');
+  </script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>La Pega - Juego de Cartas</title>
@@ -18,6 +27,25 @@
     <button id="verReglas" style="background: #e67e22; margin-top: 15px;">📜 Ver Reglas</button>
   </div>
 
+  <!-- PANEL DE REGLAS OCULTO -->
+  <div id="modalReglas" class="modal-reglas" style="display:none;">
+    <div class="modal-contenido">
+      <h2>📜 Reglas de "La Pega"</h2>
+      <div class="texto-reglas">
+        <p><strong>El Objetivo:</strong> Llegar a 40 puntos. Gana el equipo o jugador que lo logre primero.</p>
+        <p><strong>La Mesa Inicial:</strong> El jugador que reparte (el que da mesa) se suma puntos dependiendo de las rondas que haya en las 4 cartas iniciales. Además, si la primera carta que pone en la mesa es un 1, se suma 1 punto; si es un 2, se suma 2 puntos... y así sucesivamente.</p>
+        <p><strong>Cómo recoger:</strong> Tiras una carta y recoges otra de la mesa del mismo valor, llevándote también las siguientes en escalera ascendente (El orden es: 1 al 7, Sota, Caballo, Rey). Cada carta que logres recoger suma 1 punto al final de la mano.</p>
+        <hr style="border-color: #e67e22; margin: 15px 0;">
+        <p style="text-align: center; color: gold;"><strong>🔥 SISTEMA DE PUNTUACIÓN 🔥</strong></p>
+        <p><strong>Limpiar la mesa, Pegada y Rondas:</strong><br>• Si la carta es del <strong>1 al 7</strong> = 1 punto<br>• Si la carta es un <strong>10 (Sota)</strong> = 2 puntos<br>• Si la carta es un <strong>11 (Caballo)</strong> = 3 puntos<br>• Si la carta es un <strong>12 (Rey)</strong> = 4 puntos</p>
+        <p><strong>Repega y Rondines:</strong><br>• Si la carta es del <strong>1 al 7</strong> = 5 puntos<br>• Si la carta es un <strong>10 (Sota)</strong> = 6 puntos<br>• Si la carta es un <strong>11 (Caballo)</strong> = 7 puntos<br>• Si la carta es un <strong>12 (Rey)</strong> = 8 puntos</p>
+        <hr style="border-color: #e67e22; margin: 15px 0;">
+        <p><strong>Apuestas:</strong> ¡Atención! Si dos o más jugadores tienen "ronda" a la vez durante la partida, estos podrán hacer las apuestas que quieran con esa ronda.</p>
+      </div>
+      <button id="cerrarReglas" style="background: #e74c3c; width: 100%; margin-top: 15px;">Entendido</button>
+    </div>
+  </div>
+
   <!-- Modal Repartidor (Da Mano) -->
   <div id="modal-corte" class="modal-reglas" style="display:none;">
     <div class="modal-contenido" style="text-align: center; border-color: #3498db;">
@@ -25,6 +53,19 @@
       <p>¿Por dónde quieres empezar a contar para repartir?</p>
       <button id="btn-corte-1" style="background: #3498db; margin: 10px; width: 40%;">Por 1</button>
       <button id="btn-corte-4" style="background: #9b59b6; margin: 10px; width: 40%;">Por 4</button>
+    </div>
+  </div>
+
+  <!-- NUEVO: Modal Fin de Ronda Gigante -->
+  <div id="fin-ronda-modal" class="modal-reglas" style="display:none;">
+    <div class="modal-contenido" style="text-align: center; border-color: gold;">
+      <h2 style="color: gold; font-size: 28px;">¡Fin de la Ronda!</h2>
+      <p style="font-size: 18px;">Cartas Equipo Rojo: <span id="cartas-ronda-rojo" style="color: #ff6b6b; font-weight: bold; font-size: 22px;">0</span></p>
+      <p style="font-size: 18px;">Cartas Equipo Azul: <span id="cartas-ronda-azul" style="color: #4facfe; font-weight: bold; font-size: 22px;">0</span></p>
+      <div style="background: #444; padding: 10px; border-radius: 8px; margin-top: 20px;">
+        <p style="font-size: 14px; margin: 0; color: #ddd;">*Recordatorio: Sumad en el marcador los puntos de vuestras pegas, rondas y las cartas físicas recogidas antes de darle al botón*</p>
+      </div>
+      <button id="btn-siguiente-ronda" style="margin-top: 20px; padding: 15px; background: gold; color: black; font-weight: bold; width: 100%; font-size: 18px;">Siguiente Ronda</button>
     </div>
   </div>
 
@@ -65,7 +106,7 @@
       <div id="mesa"></div>
     </div>
 
-    <!-- NUEVO CONTENEDOR DE CHAT -->
+    <!-- CONTENEDOR DE CHAT -->
     <div id="chat-container">
       <h3>💬 Chat</h3>
       <div id="chat-mensajes"></div>

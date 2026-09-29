@@ -32,12 +32,27 @@ const modalCorte = document.getElementById('modal-corte');
 const btnCorte1 = document.getElementById('btn-corte-1');
 const btnCorte4 = document.getElementById('btn-corte-4');
 
+// Botones de reglas
+const btnVerReglas = document.getElementById('verReglas');
+const modalReglas = document.getElementById('modalReglas');
+const btnCerrarReglas = document.getElementById('cerrarReglas');
+
+// Elementos Modal Fin de Ronda
+const finRondaModal = document.getElementById('fin-ronda-modal');
+const cartasRojoSpan = document.getElementById('cartas-ronda-rojo');
+const cartasAzulSpan = document.getElementById('cartas-ronda-azul');
+const btnSiguienteRonda = document.getElementById('btn-siguiente-ronda');
+
 let miTurno = false;
 let miCodigo = null;
 let miNombre = '';
 let marcador = { rojo: 0, azul: 0 };
 let partidaActual = null;
 let cartasRecogidas = {};
+
+// Reglas
+btnVerReglas.onclick = () => { modalReglas.style.display = 'flex'; };
+btnCerrarReglas.onclick = () => { modalReglas.style.display = 'none'; };
 
 btnJugarBot.onclick = () => {
     miNombre = inputNombre.value.trim() || 'Jugador';
@@ -229,6 +244,21 @@ function actualizarMesa(mesa) {
         mesaDiv.innerHTML = '<p>Mesa vacía</p>';
     }
 }
+
+// LOGICA FIN DE RONDA Y MARCADOR
+socket.on('fin-de-ronda', (data) => {
+    cartasRojoSpan.innerText = data.cartasRojo;
+    cartasAzulSpan.innerText = data.cartasAzul;
+    finRondaModal.style.display = 'flex'; // ¡Ahora se mostrará como un pop-up que ocupa todo!
+});
+
+btnSiguienteRonda.onclick = () => {
+    socket.emit('siguiente-ronda', miCodigo);
+};
+
+socket.on('nueva-ronda-iniciada', () => {
+    finRondaModal.style.display = 'none';
+});
 
 if (rojoMas) rojoMas.onclick = () => { socket.emit('sumar-punto', { codigo: miCodigo, equipo: 'rojo' }); };
 if (rojoMenos) rojoMenos.onclick = () => { socket.emit('restar-punto', { codigo: miCodigo, equipo: 'rojo' }); };
