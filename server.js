@@ -58,6 +58,37 @@ function calcularPegada(carta, mesa) {
     return recogidas;
 }
 
+function notificarTurno(codigo) {
+    const partida = partidas[codigo];
+    if (!partida) return;
+    const idJugador = partida.jugadores[partida.turno];
+
+    if (idJugador === 'bot') {
+        jugarTurnoBot(codigo);
+    } else {
+        io.to(idJugador).emit('tu-turno');
+    }
+}
+
+function iniciarReparto(codigo) {
+    const partida = partidas[codigo];
+    if (!partida) return;
+
+    const numJugadores = partida.jugadores.length;
+    const dealerIndex = (partida.primerJugadorRonda - 1 + numJugadores) % numJugadores;
+    const dealerId = partida.jugadores[dealerIndex];
+
+    if (dealerId === 'bot') {
+        setTimeout(() => {
+            io.to(codigo).emit('chat-mensaje', { emisor: '🤖 Sistema', mensaje: 'La Máquina reparte y elige contar por 1. Repartiendo...' });
+            repartirCartas(codigo);
+        }, 1500);
+    } else {
+        io.to(codigo).emit('chat-mensaje', { emisor: '🤖 Sistema', mensaje: `Esperando a que ${partida.nombres[dealerId]} decida por dónde contar...` });
+        io.to(dealerId).emit('pedir-corte');
+    }
+}
+
 function repartirCartas(codigo) {
     const partida = partidas[codigo];
     if (!partida.baraja || partida.baraja.length === 0) {
@@ -70,15 +101,14 @@ function repartirCartas(codigo) {
     });
 
     partida.jugadores.forEach(id => {
-        io.to(id).emit('recibir-mano', partida.manos[id]);
+        if (id !== 'bot') io.to(id).emit('recibir-mano', partida.manos[id]);
     });
 
     io.to(codigo).emit('mesa-actualizada', partida.mesa);
     io.to(codigo).emit('puntajes-actualizados', partida.puntos);
     io.to(codigo).emit('cartas-recogidas-jugador', partida.cartasRecogidas);
 
-    const jugadorTurno = partida.jugadores[partida.turno];
-    io.to(jugadorTurno).emit('tu-turno');
+    notificarTurno(codigo);
 }
 
 function verificarFinPartida(partida, codigo) {
@@ -100,16 +130,145 @@ function arrancarJuego(codigo) {
     partida.primerJugadorRonda = 0;
     partida.turno = partida.primerJugadorRonda;
 
-    repartirCartas(codigo);
-
     partida.jugadores.forEach(id => {
-        io.to(id).emit('mesa-inicial', partida.mesa);
-        io.to(id).emit('iniciar-juego');
+        if (id !== 'bot') {
+            io.to(id).emit('mesa-inicial', partida.mesa);
+            io.to(id).emit('iniciar-juego');
+        }
     });
+
+    iniciarReparto(codigo);
 }
 
+function jugarTurnoBot(codigo) {
+    const partida = partidas[codigo];
+    if (!partida) return;
+
+    setTimeout(() => {
+        const p = partidas[codigo];
+        if (!p || p.jugadores[p.turno] !== 'bot') return;
+
+        const mano = p.manos['bot'];
+        if (!mano || mano.length === 0) return;
+
+        let indiceElegido = -1;
+
+        if (p.cadenaPega) {
+            indiceElegido = mano.findIndex(c => c.valor === p.cadenaPega.valor);
+        } else if (p.ultimaCartaTirada) {
+            indiceElegido = mano.findIndex(c => c.valor === p.ultimaCartaTirada.valor);
+        }
+
+        if (indiceElegido === -1 && p.mesa.length > 0) {
+            for (let i = 0; i < mano.length; i++) {
+                if (p.mesa.some(m => m.valor === mano[i].valor)) {
+                    indiceElegido = i;
+                    break;
+                }
+            }
+        }
+
+        if (indiceElegido === -1) {
+            let minValor = 99;
+            for (let i = 0; i < mano.length; i++) {
+                if (mano[i].valor < minValor) {
+                    minValor = mano[i].valor;
+                    indiceElegido = i;
+                }
+            }
+        }
+
+        procesarTiro(codigo, 'bot', indiceElegido);
+    }, 1500);
+}
+
+function procesarTiro(codigo, idJugador, indice) {
+    const partida = partidas[codigo];
+    if (!partida || idJugador !== partida.jugadores[partida.turno]) return;
+
+    const manoJugador = partida.manos[idJugador];
+    if (manoJugador && indice >= 0 && indice < manoJugador.length) {
+        const cartaTirada = { ...manoJugador[indice] };
+        manoJugador.splice(indice, 1);
+
+        if (partida.cadenaPega && cartaTirada.valor === partida.cadenaPega.valor) {
+            const victima = partida.cadenaPega.victima;
+            const acumuladas = partida.cadenaPega.cartasAcumuladas;
+
+            if (partida.cartasRecogidas[victima] !== undefined) {
+                partida.cartasRecogidas[victima] = Math.max(0, partida.cartasRecogidas[victima] - acumuladas);
+            }
+
+            const nuevasAcumuladas = acumuladas + 1;
+            partida.cartasRecogidas[idJugador] += nuevasAcumuladas;
+
+            partida.cadenaPega = { valor: cartaTirada.valor, cartasAcumuladas: nuevasAcumuladas, victima: idJugador };
+            partida.ultimoEnRecoger = idJugador;
+
+            io.to(codigo).emit('robo-pega', { ladron: idJugador, valor: cartaTirada.valor, ganadas: nuevasAcumuladas, perdidas: acumuladas });
+        }
+        else {
+            const recogidas = calcularPegada(cartaTirada, partida.mesa);
+
+            if (recogidas.length > 0) {
+                partida.mesa = partida.mesa.filter(c => !recogidas.includes(c));
+                partida.cartasRecogidas[idJugador] += recogidas.length + 1;
+                partida.ultimoEnRecoger = idJugador;
+
+                if (partida.ultimaCartaTirada && cartaTirada.valor === partida.ultimaCartaTirada.valor) {
+                    partida.cadenaPega = { valor: cartaTirada.valor, cartasAcumuladas: 2, victima: idJugador };
+                } else {
+                    partida.cadenaPega = null;
+                }
+
+                partida.ultimaCartaTirada = null;
+                io.to(codigo).emit('cartas-recogidas', { jugador: idJugador, cartas: recogidas });
+            } else {
+                partida.mesa.push(cartaTirada);
+                partida.ultimaCartaTirada = { valor: cartaTirada.valor, jugador: idJugador };
+                partida.cadenaPega = null;
+            }
+        }
+
+        io.to(codigo).emit('cartas-recogidas-jugador', partida.cartasRecogidas);
+
+        const todasManosVacias = Object.values(partida.manos).every(mano => mano.length === 0);
+
+        if (todasManosVacias) {
+            if (partida.baraja.length > 0) {
+                partida.ronda++;
+                partida.turno = (partida.turno + 1) % partida.jugadores.length;
+                setTimeout(() => { iniciarReparto(codigo); }, 1000);
+            } else {
+                if (partida.ultimoEnRecoger && partida.mesa.length > 0) {
+                    partida.cartasRecogidas[partida.ultimoEnRecoger] += partida.mesa.length;
+                    partida.mesa = [];
+                }
+
+                let cartasRojo = 0;
+                let cartasAzul = 0;
+                partida.equipoRojo.forEach(id => cartasRojo += (partida.cartasRecogidas[id] || 0));
+                partida.equipoAzul.forEach(id => cartasAzul += (partida.cartasRecogidas[id] || 0));
+
+                io.to(codigo).emit('mesa-actualizada', partida.mesa);
+                io.to(codigo).emit('cartas-recogidas-jugador', partida.cartasRecogidas);
+                io.to(codigo).emit('fin-de-ronda', { cartasRojo, cartasAzul });
+            }
+        } else {
+            partida.turno = (partida.turno + 1) % partida.jugadores.length;
+            notificarTurno(codigo);
+        }
+
+        partida.jugadores.forEach(id => {
+            if (id !== 'bot' && partida.manos[id]) io.to(id).emit('mano-actualizada', partida.manos[id]);
+        });
+        io.to(codigo).emit('mesa-actualizada', partida.mesa);
+        verificarFinPartida(partida, codigo);
+    }
+}
+
+
 io.on('connection', socket => {
-    // NUEVO: Recibe el nombre
     socket.on('crear-partida', ({ maxJugadores, nombre }) => {
         const codigo = generarCodigo();
         partidas[codigo] = {
@@ -131,14 +290,39 @@ io.on('connection', socket => {
             ultimaCartaTirada: null,
             cadenaPega: null
         };
-
         partidas[codigo].cartasRecogidas[socket.id] = 0;
         jugadoresPartidas[socket.id] = codigo;
         socket.join(codigo);
         socket.emit('partida-creada', { codigo });
     });
 
-    // NUEVO: Recibe el nombre al unirse
+    socket.on('crear-partida-bot', ({ nombre }) => {
+        const codigo = generarCodigo();
+        partidas[codigo] = {
+            jugadores: [socket.id, 'bot'],
+            nombres: { [socket.id]: nombre || 'Jugador', 'bot': '🤖 La Máquina' },
+            maxJugadores: 2,
+            puntos: { rojo: 0, azul: 0 },
+            manos: {},
+            mesa: [],
+            turno: 0,
+            baraja: crearBaraja().sort(() => Math.random() - 0.5),
+            equipoRojo: [socket.id],
+            equipoAzul: ['bot'],
+            cartasRecogidas: { [socket.id]: 0, 'bot': 0 },
+            ronda: 0,
+            primerJugadorRonda: 0,
+            ultimoEnRecoger: null,
+            equiposSeleccion: { rojo: [], azul: [] },
+            ultimaCartaTirada: null,
+            cadenaPega: null
+        };
+        jugadoresPartidas[socket.id] = codigo;
+        socket.join(codigo);
+        socket.emit('partida-creada', { codigo });
+        arrancarJuego(codigo);
+    });
+
     socket.on('unirse-partida', ({ codigo, nombre }) => {
         codigo = String(codigo).trim();
         const partida = partidas[codigo];
@@ -153,21 +337,13 @@ io.on('connection', socket => {
         socket.join(codigo);
         partida.cartasRecogidas[socket.id] = 0;
 
-        // Enviamos la lista de jugadores Y sus nombres
-        io.to(codigo).emit('actualizar-jugadores', {
-            jugadores: partida.jugadores,
-            nombres: partida.nombres
-        });
+        io.to(codigo).emit('actualizar-jugadores', { jugadores: partida.jugadores, nombres: partida.nombres });
 
         if (partida.jugadores.length === partida.maxJugadores) {
             if (partida.maxJugadores === 4) {
                 partida.jugadores.forEach(idJugador => {
                     io.to(idJugador).emit('mostrar-seleccion-equipos');
-                    io.to(idJugador).emit('equipos-actualizados', {
-                        rojo: partida.equiposSeleccion.rojo,
-                        azul: partida.equiposSeleccion.azul,
-                        nombres: partida.nombres
-                    });
+                    io.to(idJugador).emit('equipos-actualizados', { rojo: partida.equiposSeleccion.rojo, azul: partida.equiposSeleccion.azul, nombres: partida.nombres });
                 });
             } else {
                 partida.equipoRojo = [partida.jugadores[0]];
@@ -184,132 +360,49 @@ io.on('connection', socket => {
         partida.equiposSeleccion.rojo = partida.equiposSeleccion.rojo.filter(id => id !== socket.id);
         partida.equiposSeleccion.azul = partida.equiposSeleccion.azul.filter(id => id !== socket.id);
 
-        if (partida.equiposSeleccion[equipo].length < 2) {
-            partida.equiposSeleccion[equipo].push(socket.id);
-        }
+        if (partida.equiposSeleccion[equipo].length < 2) partida.equiposSeleccion[equipo].push(socket.id);
 
-        io.to(codigo).emit('equipos-actualizados', {
-            rojo: partida.equiposSeleccion.rojo,
-            azul: partida.equiposSeleccion.azul,
-            nombres: partida.nombres
-        });
+        io.to(codigo).emit('equipos-actualizados', { rojo: partida.equiposSeleccion.rojo, azul: partida.equiposSeleccion.azul, nombres: partida.nombres });
 
         if (partida.equiposSeleccion.rojo.length === 2 && partida.equiposSeleccion.azul.length === 2) {
             partida.equipoRojo = [...partida.equiposSeleccion.rojo];
             partida.equipoAzul = [...partida.equiposSeleccion.azul];
-            partida.jugadores = [
-                partida.equipoRojo[0], partida.equipoAzul[0],
-                partida.equipoRojo[1], partida.equipoAzul[1]
-            ];
+            partida.jugadores = [partida.equipoRojo[0], partida.equipoAzul[0], partida.equipoRojo[1], partida.equipoAzul[1]];
             arrancarJuego(codigo);
+        }
+    });
+
+    socket.on('corte-elegido', ({ codigo, eleccion }) => {
+        const partida = partidas[codigo];
+        if (partida) {
+            io.to(codigo).emit('chat-mensaje', { emisor: '🤖 Sistema', mensaje: `${partida.nombres[socket.id]} decidió contar por ${eleccion}. ¡Repartiendo cartas!` });
+            repartirCartas(codigo);
+        }
+    });
+
+    socket.on('cantar-ronda', codigo => {
+        const partida = partidas[codigo];
+        if (partida) {
+            io.to(codigo).emit('chat-mensaje', { emisor: '📢 ALERTA', mensaje: `¡${partida.nombres[socket.id]} HA CANTADO RONDA!` });
+            io.to(codigo).emit('jugador-canto-ronda', partida.nombres[socket.id]);
+        }
+    });
+
+    socket.on('chat-mensaje', ({ codigo, mensaje }) => {
+        const partida = partidas[codigo];
+        if (partida) {
+            io.to(codigo).emit('chat-mensaje', { emisor: partida.nombres[socket.id], mensaje });
         }
     });
 
     socket.on('tirar-carta', ({ carta, indice }) => {
         const codigo = jugadoresPartidas[socket.id];
-        const partida = partidas[codigo];
-        if (!partida || socket.id !== partida.jugadores[partida.turno]) return;
-
-        const manoJugador = partida.manos[socket.id];
-        if (manoJugador && indice >= 0 && indice < manoJugador.length) {
-            const cartaTirada = { ...manoJugador[indice] };
-            manoJugador.splice(indice, 1);
-
-            if (partida.cadenaPega && cartaTirada.valor === partida.cadenaPega.valor) {
-                const victima = partida.cadenaPega.victima;
-                const acumuladas = partida.cadenaPega.cartasAcumuladas;
-
-                if (partida.cartasRecogidas[victima] !== undefined) {
-                    partida.cartasRecogidas[victima] = Math.max(0, partida.cartasRecogidas[victima] - acumuladas);
-                }
-
-                const nuevasAcumuladas = acumuladas + 1;
-                partida.cartasRecogidas[socket.id] += nuevasAcumuladas;
-
-                partida.cadenaPega = {
-                    valor: cartaTirada.valor,
-                    cartasAcumuladas: nuevasAcumuladas,
-                    victima: socket.id
-                };
-                partida.ultimoEnRecoger = socket.id;
-
-                io.to(codigo).emit('robo-pega', {
-                    ladron: socket.id,
-                    valor: cartaTirada.valor,
-                    ganadas: nuevasAcumuladas,
-                    perdidas: acumuladas
-                });
-            }
-            else {
-                const recogidas = calcularPegada(cartaTirada, partida.mesa);
-
-                if (recogidas.length > 0) {
-                    partida.mesa = partida.mesa.filter(c => !recogidas.includes(c));
-                    partida.cartasRecogidas[socket.id] += recogidas.length + 1;
-                    partida.ultimoEnRecoger = socket.id;
-
-                    if (partida.ultimaCartaTirada && cartaTirada.valor === partida.ultimaCartaTirada.valor) {
-                        partida.cadenaPega = {
-                            valor: cartaTirada.valor,
-                            cartasAcumuladas: 2,
-                            victima: socket.id
-                        };
-                    } else {
-                        partida.cadenaPega = null;
-                    }
-
-                    partida.ultimaCartaTirada = null;
-                    io.to(codigo).emit('cartas-recogidas', { jugador: socket.id, cartas: recogidas });
-                } else {
-                    partida.mesa.push(cartaTirada);
-                    partida.ultimaCartaTirada = { valor: cartaTirada.valor, jugador: socket.id };
-                    partida.cadenaPega = null;
-                }
-            }
-
-            io.to(codigo).emit('cartas-recogidas-jugador', partida.cartasRecogidas);
-
-            const todasManosVacias = Object.values(partida.manos).every(mano => mano.length === 0);
-
-            if (todasManosVacias) {
-                if (partida.baraja.length > 0) {
-                    partida.ronda++;
-                    setTimeout(() => { repartirCartas(codigo); }, 1000);
-
-                    partida.turno = (partida.turno + 1) % partida.jugadores.length;
-                    io.to(partida.jugadores[partida.turno]).emit('tu-turno');
-                } else {
-                    if (partida.ultimoEnRecoger && partida.mesa.length > 0) {
-                        partida.cartasRecogidas[partida.ultimoEnRecoger] += partida.mesa.length;
-                        partida.mesa = [];
-                    }
-
-                    let cartasRojo = 0;
-                    let cartasAzul = 0;
-                    partida.equipoRojo.forEach(id => cartasRojo += (partida.cartasRecogidas[id] || 0));
-                    partida.equipoAzul.forEach(id => cartasAzul += (partida.cartasRecogidas[id] || 0));
-
-                    io.to(codigo).emit('mesa-actualizada', partida.mesa);
-                    io.to(codigo).emit('cartas-recogidas-jugador', partida.cartasRecogidas);
-                    io.to(codigo).emit('fin-de-ronda', { cartasRojo, cartasAzul });
-                }
-            } else {
-                partida.turno = (partida.turno + 1) % partida.jugadores.length;
-                io.to(partida.jugadores[partida.turno]).emit('tu-turno');
-            }
-
-            partida.jugadores.forEach(id => {
-                if (partida.manos[id]) io.to(id).emit('mano-actualizada', partida.manos[id]);
-            });
-            io.to(codigo).emit('mesa-actualizada', partida.mesa);
-            verificarFinPartida(partida, codigo);
-        }
+        procesarTiro(codigo, socket.id, indice);
     });
 
     socket.on('siguiente-ronda', codigo => {
         const partida = partidas[codigo];
-        if (!partida) return;
-        if (partida.baraja.length > 0) return;
+        if (!partida || partida.baraja.length > 0) return;
 
         partida.baraja = crearBaraja().sort(() => Math.random() - 0.5);
         partida.mesa = partida.baraja.splice(0, 4);
@@ -326,8 +419,12 @@ io.on('connection', socket => {
         partida.turno = partida.primerJugadorRonda;
 
         io.to(codigo).emit('nueva-ronda-iniciada');
-        repartirCartas(codigo);
-        io.to(codigo).emit('mesa-inicial', partida.mesa);
+
+        partida.jugadores.forEach(id => {
+            if (id !== 'bot') io.to(id).emit('mesa-inicial', partida.mesa);
+        });
+
+        iniciarReparto(codigo);
     });
 
     socket.on('sumar-punto', ({ codigo, equipo }) => {
@@ -362,17 +459,12 @@ io.on('connection', socket => {
 
                 if (partida.turno >= idx) partida.turno = Math.max(0, partida.turno - 1);
 
-                io.to(codigo).emit('actualizar-jugadores', {
-                    jugadores: partida.jugadores,
-                    nombres: partida.nombres
-                });
-                io.to(codigo).emit('equipos-actualizados', {
-                    rojo: partida.equiposSeleccion.rojo,
-                    azul: partida.equiposSeleccion.azul,
-                    nombres: partida.nombres
-                });
+                io.to(codigo).emit('actualizar-jugadores', { jugadores: partida.jugadores, nombres: partida.nombres });
+                io.to(codigo).emit('equipos-actualizados', { rojo: partida.equiposSeleccion.rojo, azul: partida.equiposSeleccion.azul, nombres: partida.nombres });
                 io.to(codigo).emit('cartas-recogidas-jugador', partida.cartasRecogidas);
-                if (partida.jugadores.length === 0) delete partidas[codigo];
+
+                const humanos = partida.jugadores.filter(id => id !== 'bot');
+                if (humanos.length === 0) delete partidas[codigo];
             }
         }
         delete jugadoresPartidas[socket.id];
