@@ -136,7 +136,7 @@ function arrancarJuego(codigo) {
             io.to(id).emit('iniciar-juego');
         }
     });
-
+    
     iniciarReparto(codigo);
 }
 
@@ -145,7 +145,7 @@ function jugarTurnoBot(codigo) {
     if (!partida) return;
 
     setTimeout(() => {
-        const p = partidas[codigo];
+        const p = partidas[codigo]; 
         if (!p || p.jugadores[p.turno] !== 'bot') return;
 
         const mano = p.manos['bot'];
@@ -238,8 +238,12 @@ function procesarTiro(codigo, idJugador, indice) {
             if (partida.baraja.length > 0) {
                 partida.ronda++;
                 partida.turno = (partida.turno + 1) % partida.jugadores.length;
-                setTimeout(() => { iniciarReparto(codigo); }, 1000);
+                
+                // ¡CORREGIDO AQUÍ! Ahora solo reparte directamente, no pide el corte de nuevo.
+                setTimeout(() => { repartirCartas(codigo); }, 1000);
+                
             } else {
+                // FIN DE LA RONDA DE 40 CARTAS
                 if (partida.ultimoEnRecoger && partida.mesa.length > 0) {
                     partida.cartasRecogidas[partida.ultimoEnRecoger] += partida.mesa.length;
                     partida.mesa = [];
@@ -271,24 +275,24 @@ function procesarTiro(codigo, idJugador, indice) {
 io.on('connection', socket => {
     socket.on('crear-partida', ({ maxJugadores, nombre }) => {
         const codigo = generarCodigo();
-        partidas[codigo] = {
-            jugadores: [socket.id],
-            nombres: { [socket.id]: nombre || 'Jugador 1' },
-            maxJugadores,
-            puntos: { rojo: 0, azul: 0 },
-            manos: {},
-            mesa: [],
-            turno: 0,
-            baraja: crearBaraja().sort(() => Math.random() - 0.5),
-            equipoRojo: [],
-            equipoAzul: [],
-            cartasRecogidas: {},
-            ronda: 0,
-            primerJugadorRonda: 0,
-            ultimoEnRecoger: null,
-            equiposSeleccion: { rojo: [], azul: [] },
-            ultimaCartaTirada: null,
-            cadenaPega: null
+        partidas[codigo] = { 
+            jugadores: [socket.id], 
+            nombres: { [socket.id]: nombre || 'Jugador 1' }, 
+            maxJugadores, 
+            puntos: { rojo: 0, azul: 0 }, 
+            manos: {}, 
+            mesa: [], 
+            turno: 0, 
+            baraja: crearBaraja().sort(() => Math.random() - 0.5), 
+            equipoRojo: [], 
+            equipoAzul: [], 
+            cartasRecogidas: {}, 
+            ronda: 0, 
+            primerJugadorRonda: 0, 
+            ultimoEnRecoger: null, 
+            equiposSeleccion: { rojo: [], azul: [] }, 
+            ultimaCartaTirada: null, 
+            cadenaPega: null 
         };
         partidas[codigo].cartasRecogidas[socket.id] = 0;
         jugadoresPartidas[socket.id] = codigo;
@@ -298,24 +302,24 @@ io.on('connection', socket => {
 
     socket.on('crear-partida-bot', ({ nombre }) => {
         const codigo = generarCodigo();
-        partidas[codigo] = {
-            jugadores: [socket.id, 'bot'],
-            nombres: { [socket.id]: nombre || 'Jugador', 'bot': '🤖 La Máquina' },
-            maxJugadores: 2,
-            puntos: { rojo: 0, azul: 0 },
-            manos: {},
-            mesa: [],
-            turno: 0,
-            baraja: crearBaraja().sort(() => Math.random() - 0.5),
-            equipoRojo: [socket.id],
-            equipoAzul: ['bot'],
-            cartasRecogidas: { [socket.id]: 0, 'bot': 0 },
-            ronda: 0,
-            primerJugadorRonda: 0,
-            ultimoEnRecoger: null,
-            equiposSeleccion: { rojo: [], azul: [] },
-            ultimaCartaTirada: null,
-            cadenaPega: null
+        partidas[codigo] = { 
+            jugadores: [socket.id, 'bot'], 
+            nombres: { [socket.id]: nombre || 'Jugador', 'bot': '🤖 La Máquina' }, 
+            maxJugadores: 2, 
+            puntos: { rojo: 0, azul: 0 }, 
+            manos: {}, 
+            mesa: [], 
+            turno: 0, 
+            baraja: crearBaraja().sort(() => Math.random() - 0.5), 
+            equipoRojo: [socket.id], 
+            equipoAzul: ['bot'], 
+            cartasRecogidas: { [socket.id]: 0, 'bot': 0 }, 
+            ronda: 0, 
+            primerJugadorRonda: 0, 
+            ultimoEnRecoger: null, 
+            equiposSeleccion: { rojo: [], azul: [] }, 
+            ultimaCartaTirada: null, 
+            cadenaPega: null 
         };
         jugadoresPartidas[socket.id] = codigo;
         socket.join(codigo);
@@ -411,19 +415,20 @@ io.on('connection', socket => {
         partida.ultimaCartaTirada = null;
         partida.cadenaPega = null;
 
-        for (let id in partida.cartasRecogidas) {
-            partida.cartasRecogidas[id] = 0;
+        for (let id in partida.cartasRecogidas) { 
+            partida.cartasRecogidas[id] = 0; 
         }
 
         partida.primerJugadorRonda = (partida.primerJugadorRonda + 1) % partida.jugadores.length;
         partida.turno = partida.primerJugadorRonda;
 
         io.to(codigo).emit('nueva-ronda-iniciada');
-
+        
         partida.jugadores.forEach(id => {
             if (id !== 'bot') io.to(id).emit('mesa-inicial', partida.mesa);
         });
-
+        
+        // ¡Aquí es donde volvemos a pedir el corte para la nueva baraja!
         iniciarReparto(codigo);
     });
 
@@ -462,7 +467,7 @@ io.on('connection', socket => {
                 io.to(codigo).emit('actualizar-jugadores', { jugadores: partida.jugadores, nombres: partida.nombres });
                 io.to(codigo).emit('equipos-actualizados', { rojo: partida.equiposSeleccion.rojo, azul: partida.equiposSeleccion.azul, nombres: partida.nombres });
                 io.to(codigo).emit('cartas-recogidas-jugador', partida.cartasRecogidas);
-
+                
                 const humanos = partida.jugadores.filter(id => id !== 'bot');
                 if (humanos.length === 0) delete partidas[codigo];
             }
