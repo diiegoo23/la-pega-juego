@@ -1,4 +1,4 @@
-/* Estilo base */
+/* --- ESTILO BASE --- */
 body {
     font-family: 'Arial', sans-serif;
     background-color: #2e2e2e;
@@ -28,7 +28,7 @@ button {
         background-color: #666;
     }
 
-/* Contenedores de secciones */
+/* --- CONTENEDORES DE SECCIONES --- */
 .menu-secundario, #juego {
     margin-top: 20px;
     padding: 20px;
@@ -80,7 +80,7 @@ button {
     box-shadow: 0 8px 15px rgba(0,0,0,0.6);
 }
 
-/* Indicador de turno */
+/* --- INDICADOR DE TURNO --- */
 #turno-indicador {
     margin: 15px 0;
     font-size: 20px;
@@ -89,7 +89,7 @@ button {
     transition: all 0.3s ease;
 }
 
-/* Marcador */
+/* --- MARCADOR --- */
 #marcador-container > div {
     margin: 10px 0;
     padding: 10px;
@@ -112,7 +112,7 @@ button {
     background-color: #2980b9;
 }
 
-/* --- ESTILOS DEL MODAL DE REGLAS --- */
+/* --- ESTILOS DE LOS MODALES (Reglas y Repartidor) --- */
 .modal-reglas {
     position: fixed;
     top: 0;
@@ -153,4 +153,40 @@ button {
 
 .texto-reglas strong {
     color: gold;
+}
+
+/* --- ESTILOS DEL CHAT --- */
+#chat-container {
+    display: inline-block;
+    vertical-align: top;
+    margin: 10px;
+    padding: 15px;
+    background-color: #2c3e50;
+    border-radius: 12px;
+    width: 250px;
+    height: 250px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    text-align: left;
+}
+
+    #chat-container h3 {
+        margin-top: 0;
+        color: #2ecc71;
+        text-align: center;
+    }
+
+#chat-mensajes {
+    height: 150px;
+    overflow-y: auto;
+    background: #1a252f;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #444;
+}
+
+/* --- BOTÓN DE RONDA --- */
+#btn-ronda:hover {
+    background-color: #c0392b;
+    transform: scale(1.05);
 }

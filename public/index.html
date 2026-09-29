@@ -1,16 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0C1258J2LG"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-0C1258J2LG');
-  </script>
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>La Pega - Juego de Cartas</title>
@@ -22,43 +12,19 @@
   <div id="menu">
     <h1>Menú Principal</h1>
     <input id="inputNombre" type="text" placeholder="Tu nombre" maxlength="12" style="padding: 10px; font-size: 16px; border-radius: 5px; margin-bottom: 15px; text-align: center; border: none;"><br>
-    
     <button id="crear">Crear Partida</button>
     <button id="unirse">Unirse a Partida</button><br>
-    <!-- BOTÓN DE REGLAS -->
+    <button id="jugarBot" style="background: #8e44ad; margin-top: 15px;">🤖 Jugar contra la Máquina</button><br>
     <button id="verReglas" style="background: #e67e22; margin-top: 15px;">📜 Ver Reglas</button>
   </div>
 
-  <!-- PANEL DE REGLAS OCULTO -->
-  <div id="modalReglas" class="modal-reglas" style="display:none;">
-    <div class="modal-contenido">
-      <h2>📜 Reglas de "La Pega"</h2>
-      <div class="texto-reglas">
-        <p><strong>El Objetivo:</strong> Llegar a 40 puntos. Gana el equipo o jugador que lo logre primero.</p>
-        
-        <p><strong>La Mesa Inicial:</strong> El jugador que reparte (el que da mesa) se suma puntos dependiendo de las rondas que haya en las 4 cartas iniciales. Además, si la primera carta que pone en la mesa es un 1, se suma 1 punto; si es un 2, se suma 2 puntos... y así sucesivamente.</p>
-
-        <p><strong>Cómo recoger:</strong> Tiras una carta y recoges otra de la mesa del mismo valor, llevándote también las siguientes en escalera ascendente (El orden es: 1 al 7, Sota, Caballo, Rey). Cada carta que logres recoger suma 1 punto al final de la mano.</p>
-
-        <hr style="border-color: #e67e22; margin: 15px 0;">
-        <p style="text-align: center; color: gold;"><strong>🔥 SISTEMA DE PUNTUACIÓN 🔥</strong></p>
-        
-        <p><strong>Limpiar la mesa, Pegada y Rondas:</strong><br>
-        • Si la carta es del <strong>1 al 7</strong> = 1 punto<br>
-        • Si la carta es un <strong>10 (Sota)</strong> = 2 puntos<br>
-        • Si la carta es un <strong>11 (Caballo)</strong> = 3 puntos<br>
-        • Si la carta es un <strong>12 (Rey)</strong> = 4 puntos</p>
-
-        <p><strong>Repega y Rondines:</strong><br>
-        • Si la carta es del <strong>1 al 7</strong> = 5 puntos<br>
-        • Si la carta es un <strong>10 (Sota)</strong> = 6 puntos<br>
-        • Si la carta es un <strong>11 (Caballo)</strong> = 7 puntos<br>
-        • Si la carta es un <strong>12 (Rey)</strong> = 8 puntos</p>
-        
-        <hr style="border-color: #e67e22; margin: 15px 0;">
-        <p><strong>Apuestas:</strong> ¡Atención! Si dos o más jugadores tienen "ronda" a la vez durante la partida, estos podrán hacer las apuestas que quieran con esa ronda.</p>
-      </div>
-      <button id="cerrarReglas" style="background: #e74c3c; width: 100%; margin-top: 15px;">Entendido</button>
+  <!-- Modal Repartidor (Da Mano) -->
+  <div id="modal-corte" class="modal-reglas" style="display:none;">
+    <div class="modal-contenido" style="text-align: center; border-color: #3498db;">
+      <h2>🃏 Eres el que da mano</h2>
+      <p>¿Por dónde quieres empezar a contar para repartir?</p>
+      <button id="btn-corte-1" style="background: #3498db; margin: 10px; width: 40%;">Por 1</button>
+      <button id="btn-corte-4" style="background: #9b59b6; margin: 10px; width: 40%;">Por 4</button>
     </div>
   </div>
 
@@ -71,8 +37,7 @@
 
   <div id="unirsePartida" class="menu-secundario" style="display:none;">
     <h2>Introduce el código de la partida</h2>
-    <input id="inputCodigo" type="text" placeholder="Código de 4 dígitos" maxlength="4" style="padding: 10px; font-size: 16px; border-radius: 5px; text-align: center; border: none;">
-    <br><br>
+    <input id="inputCodigo" type="text" placeholder="Código de 4 dígitos" maxlength="4" style="padding: 10px; font-size: 16px; border-radius: 5px; text-align: center; border: none;"><br><br>
     <button id="botonUnirse">Unirse</button>
     <button id="volverUnirse">Volver</button>
   </div>
@@ -80,62 +45,47 @@
   <div id="codigoPartida" class="menu-secundario" style="display:none;">
     <h2>Tu código de partida</h2>
     <p>Código: <span id="codigo" style="font-size: 24px; font-weight: bold;"></span></p>
-    <p>Comparte este código con los demás jugadores</p>
   </div>
 
   <div id="seleccion-equipos" class="menu-secundario" style="display:none;">
     <h2>¡Partida Llena! Selecciona tu equipo</h2>
     <div>
-      <div class="equipo-caja" style="border: 3px solid #ff6b6b;">
-        <h3 style="color: #ff6b6b;">Equipo Rojo</h3>
-        <ul id="lista-rojo"></ul>
-        <button id="btn-rojo" style="background: #c0392b;">Unirse</button>
-      </div>
-      <div class="equipo-caja" style="border: 3px solid #4facfe;">
-        <h3 style="color: #4facfe;">Equipo Azul</h3>
-        <ul id="lista-azul"></ul>
-        <button id="btn-azul" style="background: #2980b9;">Unirse</button>
-      </div>
+      <div class="equipo-caja" style="border: 3px solid #ff6b6b;"><h3 style="color: #ff6b6b;">Equipo Rojo</h3><ul id="lista-rojo"></ul><button id="btn-rojo" style="background: #c0392b;">Unirse</button></div>
+      <div class="equipo-caja" style="border: 3px solid #4facfe;"><h3 style="color: #4facfe;">Equipo Azul</h3><ul id="lista-azul"></ul><button id="btn-azul" style="background: #2980b9;">Unirse</button></div>
     </div>
-    <p style="margin-top: 20px;">El juego empezará cuando ambos equipos tengan 2 jugadores.</p>
   </div>
 
-  <div id="contador-cartas" style="display:none;"></div>
   <div id="turno-indicador" style="display:none;"></div>
 
   <div id="juego" class="menu-secundario" style="display:none;">
     <h2>Juego en curso</h2>
     
-    <div id="fin-ronda-modal" style="display:none;">
-      <h2>¡Fin de la Ronda!</h2>
-      <p>Total de cartas Equipo Rojo: <span id="cartas-ronda-rojo" style="color: #ff6b6b;">0</span></p>
-      <p>Total de cartas Equipo Azul: <span id="cartas-ronda-azul" style="color: #4facfe;">0</span></p>
-      <p style="font-size: 14px; margin-top: 15px;">*Sumad los puntos en el marcador antes de continuar*</p>
-      <button id="btn-siguiente-ronda" style="margin-top: 15px; background: gold; color: black; font-weight: bold;">Siguiente Ronda</button>
-    </div>
-
     <div id="mesa-container">
       <h3>Mesa</h3>
       <div id="mesa"></div>
     </div>
 
+    <!-- NUEVO CONTENEDOR DE CHAT -->
+    <div id="chat-container">
+      <h3>💬 Chat</h3>
+      <div id="chat-mensajes"></div>
+      <div style="display: flex;">
+        <input type="text" id="chat-input" placeholder="Escribe un mensaje..." style="flex-grow: 1; padding: 5px; border-radius: 5px; border: none;">
+        <button id="chat-enviar" style="background: #2ecc71; margin-left: 5px; padding: 5px 10px;">Enviar</button>
+      </div>
+    </div>
+
     <div id="mano-container">
       <h3>Tu Mano</h3>
       <div id="mano"></div>
+      <!-- BOTÓN DE RONDA -->
+      <button id="btn-ronda" style="background: #e74c3c; width: 100%; margin-top: 10px; font-weight: bold;">📢 TENGO RONDA</button>
     </div>
 
     <div id="marcador-container">
       <h3>Marcador (Hasta 40)</h3>
-      <div>
-        <div>Rojo: <span id="rojo-btn">0</span></div>
-        <button id="rojo-mas">+</button>
-        <button id="rojo-menos">-</button>
-      </div>
-      <div>
-        <div>Azul: <span id="azul-btn">0</span></div>
-        <button id="azul-mas">+</button>
-        <button id="azul-menos">-</button>
-      </div>
+      <div><div>Rojo: <span id="rojo-btn">0</span></div><button id="rojo-mas">+</button><button id="rojo-menos">-</button></div>
+      <div><div>Azul: <span id="azul-btn">0</span></div><button id="azul-mas">+</button><button id="azul-menos">-</button></div>
     </div>
   </div>
 </body>
